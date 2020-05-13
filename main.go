@@ -26,6 +26,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type Todo struct {
@@ -56,33 +58,42 @@ func get() {
 	fmt.Printf("API Response as struck %+v\n", todoStruct)
 }
 
-func getStock() {
+func getStockMonthly(response http.ResponseWriter, request *http.Request) {
 	// unknown data structure
-	fmt.Println("1. Get Stock API")
-	url := "https://alpha-vantage.p.rapidapi.com/query?datatype=json&symbol=MSFT&function=TIME_SERIES_MONTHLY"
-	api_key := "8a443e481emshe2c3e916c5d31d6p12c4f1jsn8ee582ea634f"
+	response.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(request)
+	stockName := params["stockName"]
+	fmt.Println("Fetching ", stockName, " Monthly time series stock details")
+	url := "https://alpha-vantage.p.rapidapi.com/query?datatype=json&symbol=" + stockName + "&function=TIME_SERIES_MONTHLY"
+	apiKey := "8a443e481emshe2c3e916c5d31d6p12c4f1jsn8ee582ea634f"
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("x-rapidapi-host", "alpha-vantage.p.rapidapi.com")
-	req.Header.Add("x-rapidapi-key", api_key)
+	req.Header.Add("x-rapidapi-key", apiKey)
 
 	res, _ := http.DefaultClient.Do(req)
 
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
-	var jsonData interface{}
+	/*var jsonData interface{}
 	err := json.Unmarshal(body, &jsonData)
 	if err != nil {
 		log.Fatalln(err)
-	}
-	data := jsonData.(map[string]interface{})
+	}*/
+	//data := jsonData.(map[string]interface{})
 
-	fmt.Println(res)
-	//fmt.Println(string(body))
-	fmt.Printf("%+v\n", data)
+	//fmt.Println(res)
+	fmt.Println(string(body))
+	//fmt.Printf("%+v\n", data)
+
+	response.Write([]byte(body))
 
 }
 
 func main() {
-	get()
-	getStock()
+	//get()
+	//getStockMonthly("AMZN")
+
+	router := mux.NewRouter()
+	router.HandleFunc("/stock/monthly/{stockName}", getStockMonthly).Methods("GET")
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
